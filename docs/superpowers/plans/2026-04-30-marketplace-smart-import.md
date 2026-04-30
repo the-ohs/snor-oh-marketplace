@@ -19,7 +19,7 @@
 ## Task 0: Set up test infrastructure (Vitest + happy-dom + RTL)
 
 **Files:**
-- Create: `vitest.config.ts`
+- Create: `vitest.config.mts`
 - Create: `tests/setup.ts`
 - Modify: `package.json` (devDeps + scripts)
 - Modify: `tsconfig.json` (add Vitest types)
@@ -42,7 +42,9 @@ In `package.json` `"scripts"` block, add:
 "test:watch": "vitest"
 ```
 
-- [ ] **Step 0.3 — Create `vitest.config.ts`**
+- [ ] **Step 0.3 — Create `vitest.config.mts`**
+
+Use the `.mts` extension (not `.ts`): `@vitejs/plugin-react` is ESM-only and Next.js doesn't set `type:module`, so `.mts` is required for Node to load this config as ESM.
 
 ```ts
 import { defineConfig } from "vitest/config";
@@ -83,7 +85,7 @@ afterEach(() => {
 
 - [ ] **Step 0.5 — Update `tsconfig.json`**
 
-Add `"vitest/globals"` and `"@testing-library/jest-dom"` to `compilerOptions.types`. Also add `"tests/**/*.ts"` and `"vitest.config.ts"` to `"include"` if not already covered.
+Add `"vitest/globals"` and `"@testing-library/jest-dom"` to `compilerOptions.types`. Also add `"tests/**/*.ts"` and `"vitest.config.mts"` to `"include"` if not already covered.
 
 - [ ] **Step 0.6 — Sanity test**
 
@@ -119,7 +121,7 @@ cd /Users/apple/snor-oh-marketplace && npx tsc --noEmit
 
 ```bash
 cd /Users/apple/snor-oh-marketplace
-git add package.json package-lock.json vitest.config.ts tests/setup.ts tests/sanity.test.ts tsconfig.json
+git add package.json package-lock.json vitest.config.mts tests/setup.ts tests/sanity.test.ts tsconfig.json
 git commit -m "chore: set up vitest + happy-dom + RTL"
 ```
 
