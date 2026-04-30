@@ -42,6 +42,7 @@ lib/spriteProcessor/
   index.ts             # public surface
   canvas.ts            # browser-only adapter (File → ImageData, ImageData → PNG via canvas.toBlob)
   serverImage.ts       # node-only adapter (Buffer → ImageData via sharp.raw, ImageData → PNG via sharp.png())
+                       # ships for parity tests + future revalidation; no v1 route consumes it
 
 lib/useSmartImport.ts  # headless React hook — state machine for the editor
 
@@ -115,9 +116,11 @@ gridLayout(frameCount: number): { cols: number; rows: number; width: number; hei
 ### Runtime adapters
 
 - **`canvas.ts`** (browser): `loadImageData(file: File): Promise<ImageData>` (via `createImageBitmap` + `OffscreenCanvas`/`<canvas>`); `encodePng(img: ImageData): Promise<Uint8Array>` (via `canvas.toBlob('image/png')` → `arrayBuffer`).
-- **`serverImage.ts`** (node): `loadImageData(buf: Buffer): Promise<ImageData>` (via `sharp(buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true })`); `encodePng(img: ImageData): Promise<Buffer>` (via `sharp(img.data, { raw }).png().toBuffer()`).
+- **`serverImage.ts`** (node): `loadImageData(buf: Buffer): Promise<ImageData>` (via `sharp(buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true })`); `encodePng(img: ImageData): Promise<Uint8Array>` (via `sharp(img.data, { raw }).png().toBuffer()` — Node `Buffer` is structurally a `Uint8Array`, so this returns the shared contract without coercion).
 
-The pipeline accepts the structural shape `{ data: Uint8ClampedArray, width: number, height: number }`. Both adapters yield this shape.
+The pipeline accepts the structural shape `{ data: Uint8ClampedArray, width: number, height: number }`. Both adapters yield this shape. The encoded-PNG return type is `Uint8Array` in both runtimes — `strip.ts` and `buildPackage` consume a single uniform contract and never branch on runtime.
+
+`sharp` is already a runtime dependency of the marketplace (used by `lib/validate.ts`); `serverImage.ts` adds no new packages.
 
 ### Differences from the Swift port to flag
 
@@ -201,7 +204,7 @@ page.tsx                                  ("use client")
 ├── CreateHeader      (title, "N frames" pill)
 ├── ErrorBanner
 ├── TopSection
-│     NameField (max 20 chars)
+│     NameField (max 20 chars — intentional client-side cap; server allows up to 80, so we stay strictly inside it)
 │     SourcePicker (drop zone, accepts image/png, image/jpeg, image/gif)
 ├── FrameGrid (8-col grid, 44×44 thumbs, hover-delete, draggable)
 ├── StatusAssignment
@@ -223,6 +226,10 @@ page.tsx                                  ("use client")
 
 Reuse existing CSS variables from `app/globals.css` (`--card`, `--card-border`, `--accent`, `--bg-subtle`). No new tokens. Outer container matches the existing upload form (`rounded-2xl border bg-card shadow-sm`).
 
+### Rendering
+
+`app/create/page.tsx` is a `"use client"` shell with no server-fetched data, so it does **not** need `force-dynamic` (the existing gallery `app/page.tsx` uses `force-dynamic` because it fetches the package list at request time — a different concern). The default rendering behavior is correct here.
+
 ### Testing
 
 - `FrameGrid.test.tsx` — N stub previews → assert N tiles → fire drag-and-drop → `onMove` called with the right indices.
@@ -241,7 +248,7 @@ Reuse existing CSS variables from `app/globals.css` (`--card`, `--card-border`, 
 | Sheet > 8192px on either side | `pickSheet` | "Sheet too large (max 8192×8192)" |
 | Range references frame > N | `parseFrameInput` silently drops | Red "0f" badge, save disabled |
 | All 7 statuses must have ≥ 1 frame | `canSave` derived | Save disabled, tooltip "Assign frames to all 7 statuses" |
-| Built package > 3 MiB | `buildPackage` checks JSON length | "Package too large — try fewer frames or smaller sheet" |
+| Built package > 3 MiB (server limit) | `buildPackage` short-circuits **before** stringifying: a v2 raw source sheet > 2.0 MiB forces the package builder to emit v1 instead (per-status strips are smaller after BBox + scale). If the v1 form *also* overflows, surface "Package too large — try fewer frames or smaller sheet". | Inline error |
 | Network failure on Publish | `/api/upload` POST | Show server-returned `error.message` |
 | Rate limit hit | 429 from server | "Daily upload limit reached. Try again tomorrow." |
 
