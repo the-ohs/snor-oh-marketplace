@@ -2,8 +2,10 @@ import {
   ALPHA_THRESHOLD,
   BG_CLUSTER_TOLERANCE,
   BG_TOLERANCE,
+  MIN_GAP,
+  MIN_REGION_WIDTH,
 } from "./constants";
-import type { BgColor, RawImage } from "./types";
+import type { BgColor, DetectedRow, Frame, RawImage, SpriteRegion } from "./types";
 
 function colorDistance(a: BgColor, b: BgColor): number {
   const dr = a.r - b.r;
@@ -62,6 +64,138 @@ export function removeBackground(
   };
 }
 
-// ALPHA_THRESHOLD is used by processSheet (Task 4) — imported here to co-locate
-// with the other pixel-level constants consumed by this module.
-void ALPHA_THRESHOLD;
+function detectColumns(
+  data: Uint8ClampedArray,
+  width: number,
+  y1: number,
+  y2: number
+): SpriteRegion[] {
+  const raw: SpriteRegion[] = [];
+  let inContent = false;
+  let colStart = 0;
+  for (let x = 0; x < width; x++) {
+    let hasContent = false;
+    for (let y = y1; y < y2; y++) {
+      if (data[(y * width + x) * 4 + 3] > ALPHA_THRESHOLD) {
+        hasContent = true;
+        break;
+      }
+    }
+    if (hasContent && !inContent) {
+      colStart = x;
+      inContent = true;
+    } else if (!hasContent && inContent) {
+      raw.push({ x1: colStart, x2: x });
+      inContent = false;
+    }
+  }
+  if (inContent) raw.push({ x1: colStart, x2: width });
+  if (raw.length === 0) return [];
+
+  // Pass 2: bridge gaps < MIN_GAP
+  const merged: SpriteRegion[] = [{ ...raw[0] }];
+  for (let i = 1; i < raw.length; i++) {
+    const gap = raw[i].x1 - merged[merged.length - 1].x2;
+    if (gap < MIN_GAP) merged[merged.length - 1].x2 = raw[i].x2;
+    else merged.push({ ...raw[i] });
+  }
+
+  // Pass 3: absorb slivers — only if the region is small relative to its
+  // neighbours (at least one neighbour must be >= MIN_REGION_WIDTH). This
+  // avoids absorbing legitimate small-but-uniform sprites.
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let i = 0; i < merged.length; i++) {
+      const w = merged[i].x2 - merged[i].x1;
+      if (w < MIN_REGION_WIDTH && merged.length > 1) {
+        // Check that at least one neighbour is a "real" region
+        const leftW = i > 0 ? merged[i - 1].x2 - merged[i - 1].x1 : 0;
+        const rightW =
+          i < merged.length - 1
+            ? merged[i + 1].x2 - merged[i + 1].x1
+            : 0;
+        if (leftW < MIN_REGION_WIDTH && rightW < MIN_REGION_WIDTH) break;
+        if (i === 0) {
+          merged[1].x1 = merged[0].x1;
+        } else if (i === merged.length - 1) {
+          merged[i - 1].x2 = merged[i].x2;
+        } else {
+          const gapL = merged[i].x1 - merged[i - 1].x2;
+          const gapR = merged[i + 1].x1 - merged[i].x2;
+          if (gapL <= gapR) merged[i - 1].x2 = merged[i].x2;
+          else merged[i + 1].x1 = merged[i].x1;
+        }
+        merged.splice(i, 1);
+        changed = true;
+        break;
+      }
+    }
+  }
+  return merged;
+}
+
+export function detectRows(img: RawImage): DetectedRow[] {
+  const { data, width, height } = img;
+  const rows: DetectedRow[] = [];
+  let inContent = false;
+  let rowStart = 0;
+  for (let y = 0; y < height; y++) {
+    let hasContent = false;
+    for (let x = 0; x < width; x++) {
+      if (data[(y * width + x) * 4 + 3] > ALPHA_THRESHOLD) {
+        hasContent = true;
+        break;
+      }
+    }
+    if (hasContent && !inContent) {
+      rowStart = y;
+      inContent = true;
+    } else if (!hasContent && inContent) {
+      rows.push({
+        index: rows.length,
+        y1: rowStart,
+        y2: y,
+        sprites: detectColumns(data, width, rowStart, y),
+      });
+      inContent = false;
+    }
+  }
+  if (inContent) {
+    rows.push({
+      index: rows.length,
+      y1: rowStart,
+      y2: height,
+      sprites: detectColumns(data, width, rowStart, height),
+    });
+  }
+  return rows;
+}
+
+export function extractFrames(rows: DetectedRow[]): Frame[] {
+  const frames: Frame[] = [];
+  for (const row of rows) {
+    for (const col of row.sprites) {
+      frames.push({
+        index: frames.length,
+        x1: col.x1,
+        y1: row.y1,
+        x2: col.x2,
+        y2: row.y2,
+      });
+    }
+  }
+  return frames;
+}
+
+export function processSheet(img: RawImage): {
+  processed: RawImage;
+  rows: DetectedRow[];
+  frames: Frame[];
+  bgColor: BgColor;
+} {
+  const { processed, bgColor } = removeBackground(img);
+  const rows = detectRows(processed);
+  const frames = extractFrames(rows);
+  return { processed, rows, frames, bgColor };
+}
