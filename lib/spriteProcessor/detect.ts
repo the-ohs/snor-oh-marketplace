@@ -100,22 +100,13 @@ function detectColumns(
     else merged.push({ ...raw[i] });
   }
 
-  // Pass 3: absorb slivers — only if the region is small relative to its
-  // neighbours (at least one neighbour must be >= MIN_REGION_WIDTH). This
-  // avoids absorbing legitimate small-but-uniform sprites.
+  // Pass 3: absorb narrow slivers into their nearest neighbour.
   let changed = true;
   while (changed) {
     changed = false;
     for (let i = 0; i < merged.length; i++) {
       const w = merged[i].x2 - merged[i].x1;
       if (w < MIN_REGION_WIDTH && merged.length > 1) {
-        // Check that at least one neighbour is a "real" region
-        const leftW = i > 0 ? merged[i - 1].x2 - merged[i - 1].x1 : 0;
-        const rightW =
-          i < merged.length - 1
-            ? merged[i + 1].x2 - merged[i + 1].x1
-            : 0;
-        if (leftW < MIN_REGION_WIDTH && rightW < MIN_REGION_WIDTH) break;
         if (i === 0) {
           merged[1].x1 = merged[0].x1;
         } else if (i === merged.length - 1) {

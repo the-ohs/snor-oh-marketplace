@@ -540,21 +540,21 @@ import { detectRows, extractFrames, processSheet } from "./detect";
 
 describe("detectRows + extractFrames", () => {
   it("detects two rows of three sprites on bg", () => {
-    const img = makeImage(60, 40, [255, 255, 255], [
-      // Row 1: three 8x10 sprites at y=2..12
-      { x: 4, y: 2, w: 8, h: 10, rgb: [10, 10, 10] },
-      { x: 24, y: 2, w: 8, h: 10, rgb: [10, 10, 10] },
-      { x: 44, y: 2, w: 8, h: 10, rgb: [10, 10, 10] },
-      // Row 2: three 8x10 sprites at y=20..30
-      { x: 4, y: 20, w: 8, h: 10, rgb: [10, 10, 10] },
-      { x: 24, y: 20, w: 8, h: 10, rgb: [10, 10, 10] },
-      { x: 44, y: 20, w: 8, h: 10, rgb: [10, 10, 10] },
+    const img = makeImage(80, 40, [255, 255, 255], [
+      // Row 1: three 14x10 sprites at y=2..12
+      { x: 5, y: 2, w: 14, h: 10, rgb: [10, 10, 10] },
+      { x: 30, y: 2, w: 14, h: 10, rgb: [10, 10, 10] },
+      { x: 55, y: 2, w: 14, h: 10, rgb: [10, 10, 10] },
+      // Row 2: three 14x10 sprites at y=20..30
+      { x: 5, y: 20, w: 14, h: 10, rgb: [10, 10, 10] },
+      { x: 30, y: 20, w: 14, h: 10, rgb: [10, 10, 10] },
+      { x: 55, y: 20, w: 14, h: 10, rgb: [10, 10, 10] },
     ]);
     const result = processSheet(img);
     expect(result.rows.length).toBe(2);
     expect(result.frames.length).toBe(6);
-    expect(result.frames[0].x1).toBe(4);
-    expect(result.frames[0].x2).toBe(12);
+    expect(result.frames[0].x1).toBe(5);
+    expect(result.frames[0].x2).toBe(19);
     expect(result.frames[0].y1).toBe(2);
     expect(result.frames[0].y2).toBe(12);
     expect(result.bgColor).toEqual({ r: 255, g: 255, b: 255 });
@@ -562,15 +562,15 @@ describe("detectRows + extractFrames", () => {
 
   it("merges sprites across MIN_GAP", () => {
     // Two rects 3px apart should merge (MIN_GAP = 5)
-    const img = makeImage(40, 20, [255, 255, 255], [
-      { x: 5, y: 5, w: 8, h: 10, rgb: [0, 0, 0] },
-      { x: 16, y: 5, w: 8, h: 10, rgb: [0, 0, 0] },
+    const img = makeImage(50, 20, [255, 255, 255], [
+      { x: 5, y: 5, w: 15, h: 10, rgb: [0, 0, 0] },
+      { x: 23, y: 5, w: 15, h: 10, rgb: [0, 0, 0] },
     ]);
     const result = processSheet(img);
     expect(result.rows.length).toBe(1);
     expect(result.frames.length).toBe(1);
     expect(result.frames[0].x1).toBe(5);
-    expect(result.frames[0].x2).toBe(24);
+    expect(result.frames[0].x2).toBe(38);
   });
 
   it("absorbs slivers narrower than MIN_REGION_WIDTH", () => {
