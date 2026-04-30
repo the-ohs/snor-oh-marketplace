@@ -595,6 +595,8 @@ Expected: imports fail or new assertions fail.
 
 - [ ] **Step 4.3 — Implement remaining detect.ts functions**
 
+> **Note for the implementer:** the snippets below include extra `import` lines. Do **not** literally append them mid-file — TypeScript requires imports at the top. Merge `MIN_GAP`, `MIN_REGION_WIDTH` into the existing `from "./constants"` import, and merge `DetectedRow`, `Frame`, `SpriteRegion` into the existing `from "./types"` import.
+
 Append to `lib/spriteProcessor/detect.ts`:
 
 ```ts
@@ -1060,15 +1062,24 @@ The Canvas adapter is browser-only and not unit-testable in happy-dom (no real C
 ```ts
 import type { RawImage } from "./types";
 
+type AnyCanvas = OffscreenCanvas | HTMLCanvasElement;
+type Any2dCtx = OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
+
+function makeCanvas(w: number, h: number): AnyCanvas {
+  if (typeof OffscreenCanvas !== "undefined") return new OffscreenCanvas(w, h);
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  return c;
+}
+
 /** Decode a File or Blob to RawImage via OffscreenCanvas (or HTMLCanvas fallback). */
 export async function loadImageData(file: Blob): Promise<RawImage> {
   const bitmap = await createImageBitmap(file);
   const w = bitmap.width;
   const h = bitmap.height;
-  const canvas = typeof OffscreenCanvas !== "undefined"
-    ? new OffscreenCanvas(w, h)
-    : Object.assign(document.createElement("canvas"), { width: w, height: h });
-  const ctx = canvas.getContext("2d");
+  const canvas = makeCanvas(w, h);
+  const ctx = canvas.getContext("2d") as Any2dCtx | null;
   if (!ctx) throw new Error("2d context unavailable");
   ctx.drawImage(bitmap, 0, 0);
   bitmap.close?.();
@@ -1078,10 +1089,8 @@ export async function loadImageData(file: Blob): Promise<RawImage> {
 
 /** Encode a RawImage to PNG bytes via Canvas.toBlob('image/png'). */
 export async function encodePng(img: RawImage): Promise<Uint8Array> {
-  const canvas = typeof OffscreenCanvas !== "undefined"
-    ? new OffscreenCanvas(img.width, img.height)
-    : Object.assign(document.createElement("canvas"), { width: img.width, height: img.height });
-  const ctx = canvas.getContext("2d");
+  const canvas = makeCanvas(img.width, img.height);
+  const ctx = canvas.getContext("2d") as Any2dCtx | null;
   if (!ctx) throw new Error("2d context unavailable");
   const imgData = ctx.createImageData(img.width, img.height);
   imgData.data.set(img.data);
@@ -1292,6 +1301,30 @@ describe("useSmartImport", () => {
     }
   });
 
+  it("buildPackage emits v2 when frames are not edited and source is small", async () => {
+    const { result } = renderHook(() => useSmartImport());
+    const img = fixtureImage();
+    const { processed, frames } = processSheet(img);
+    // Tiny fake source file so the v2 path triggers (size <= 2 MiB)
+    const fakeFile = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])], "f.png", { type: "image/png" });
+    act(() => {
+      result.current.setName("test");
+      result.current.ingestProcessed({
+        sourceFile: fakeFile,
+        sourceImage: null,
+        processed,
+        frames,
+        framePreviews: frames.map(() => null as unknown as HTMLCanvasElement),
+        bgColor: { r: 255, g: 255, b: 255 },
+        defaultName: "test",
+      });
+    });
+    const pkg = await result.current.buildPackage();
+    expect(pkg.version).toBe(2);
+    expect(pkg.smartImportMeta).toBeDefined();
+    expect(pkg.sprites).toBeUndefined();
+  });
+
   it("flips framesEdited on deleteFrame and remaps inputs", () => {
     const { result } = renderHook(() => useSmartImport());
     const img = fixtureImage();
@@ -1366,6 +1399,10 @@ const emptyInputs = (): Record<StatusKey, string> => {
   return o;
 };
 
+// When total < 7 (e.g. a 3-frame sheet), statuses beyond `total` reuse the
+// last frame index ("3"). Distribution isn't perfectly uniform in that
+// degenerate case, but every status ends up with at least one valid index,
+// which is what `canSave` requires. Mirrors desktop fallback behavior.
 function autoDistribute(total: number): Record<StatusKey, string> {
   const out = emptyInputs();
   if (total === 0) return out;
@@ -1433,6 +1470,10 @@ export function useSmartImport() {
 
   const setProcessing = useCallback((processing: boolean) => {
     setState((s) => ({ ...s, processing }));
+  }, []);
+
+  const setSaving = useCallback((saving: boolean) => {
+    setState((s) => ({ ...s, saving }));
   }, []);
 
   const ingestProcessed = useCallback((arg: IngestArg) => {
@@ -1604,6 +1645,7 @@ export function useSmartImport() {
     setName,
     setError,
     setProcessing,
+    setSaving,
     ingestProcessed,
     setFrameInput,
     deleteFrame,
@@ -1624,7 +1666,7 @@ export function useSmartImport() {
 npm test -- lib/useSmartImport.test.tsx
 ```
 
-**Pass criterion:** all 3 tests pass; exit 0.
+**Pass criterion:** all 4 tests pass; exit 0.
 
 - [ ] **Step 8.4 — Commit**
 
@@ -2249,19 +2291,25 @@ export default function CreatePage() {
   }, [hook]);
 
   const onPublish = useCallback(async (creator: string) => {
-    const pkg = await hook.buildPackage();
-    const blob = new Blob([JSON.stringify(pkg)], { type: "application/json" });
-    const fd = new FormData();
-    fd.set("file", blob, `${hook.state.name}.snoroh`);
-    fd.set("filename", `${hook.state.name}.snoroh`);
-    if (creator) fd.set("creator", creator);
-    const res = await fetch("/api/upload", { method: "POST", body: fd });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      hook.setError(data?.error?.message ?? "Publish failed");
-      return;
+    if (hook.state.saving) return; // guard against double-submit
+    hook.setSaving(true);
+    try {
+      const pkg = await hook.buildPackage();
+      const blob = new Blob([JSON.stringify(pkg)], { type: "application/json" });
+      const fd = new FormData();
+      fd.set("file", blob, `${hook.state.name}.snoroh`);
+      fd.set("filename", `${hook.state.name}.snoroh`);
+      if (creator) fd.set("creator", creator);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        hook.setError(data?.error?.message ?? "Publish failed");
+        return;
+      }
+      router.push("/");
+    } finally {
+      hook.setSaving(false);
     }
-    router.push("/");
   }, [hook, router]);
 
   const s = hook.state;
@@ -2448,12 +2496,11 @@ import path from "path";
 
 test("user can build and download a v2 .snoroh from a sprite sheet", async ({ page }) => {
   await page.goto("/create");
-  await page.getByRole("button", { name: /pick sprite sheet/i }).click({ trial: true });
 
-  const fileChooser = await Promise.all([
+  const [fileChooser] = await Promise.all([
     page.waitForEvent("filechooser"),
     page.getByRole("button", { name: /pick sprite sheet/i }).click(),
-  ]).then(([fc]) => fc);
+  ]);
 
   await fileChooser.setFiles(path.join(__dirname, "fixtures/sheet-3.png"));
 
