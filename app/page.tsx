@@ -38,6 +38,13 @@ export default function Home() {
 
       <section className="mx-auto max-w-6xl px-6">
         <UploadForm />
+        <p className="mt-2 text-sm">
+          No package yet?{" "}
+          <a href="/create" className="text-[color:var(--accent)] underline">
+            Build one from a sprite sheet
+          </a>
+          .
+        </p>
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-12">
