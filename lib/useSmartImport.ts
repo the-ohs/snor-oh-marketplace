@@ -38,6 +38,18 @@ const emptyInputs = (): Record<StatusKey, string> => {
   return o;
 };
 
+// Encode bytes to base64 in chunks. `String.fromCharCode(...bigArray)` blows
+// the JS argument-list limit (~64K args) for any non-trivial PNG, so we feed
+// 32 KiB at a time and concatenate. btoa is supported in all browsers.
+function bytesToBase64(bytes: Uint8Array): string {
+  const CHUNK = 0x8000;
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
 // When total < 7 (e.g. a 3-frame sheet), statuses beyond `total` reuse the
 // last frame index ("3"). Distribution isn't perfectly uniform in that
 // degenerate case, but every status ends up with at least one valid index,
@@ -260,7 +272,7 @@ export function useSmartImport() {
 
     if (useV2 && state.sourceFile) {
       const buf = await state.sourceFile.arrayBuffer();
-      const sourceSheet = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      const sourceSheet = bytesToBase64(new Uint8Array(buf));
       const frameInputs: Record<string, string> = {};
       for (const s of STATUSES) frameInputs[s] = state.frameInputs[s];
       return { version: 2, name: state.name, smartImportMeta: { sourceSheet, frameInputs } };
@@ -272,7 +284,7 @@ export function useSmartImport() {
       if (indices.length === 0) throw new Error(`no frames assigned for ${s}`);
       const strip = await createStripFromFrames(state.processed, state.detectedFrames, indices, encodePngBrowser);
       if (!strip) throw new Error(`failed to render strip for ${s}`);
-      const b64 = btoa(String.fromCharCode(...strip.pngBytes));
+      const b64 = bytesToBase64(strip.pngBytes);
       sprites![s] = { frames: strip.frames, data: b64 };
     }
     return { version: 1, name: state.name, sprites };

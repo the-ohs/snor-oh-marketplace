@@ -36,7 +36,7 @@ export function TopSection({ name, onName, onPickFile, busy }: Props) {
         <input
           ref={inputRef}
           type="file"
-          accept="image/png,image/jpeg,image/gif"
+          accept="image/png,image/jpeg,image/gif,.png,.jpg,.jpeg,.gif"
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
