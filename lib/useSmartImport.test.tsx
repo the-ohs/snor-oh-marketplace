@@ -80,6 +80,35 @@ describe("useSmartImport", () => {
     expect(pkg.sprites).toBeUndefined();
   });
 
+  it("buildPackage handles large source files without blowing the stack (regression)", async () => {
+    // Regression for: String.fromCharCode(...new Uint8Array(buf)) blew the
+    // JS argument-list limit (~64K args) on real PNGs. The 211-byte e2e
+    // fixture didn't catch it. This test uses a 100 KiB source so the
+    // chunked encoder is exercised; the original spread-based code throws
+    // RangeError("Maximum call stack size exceeded") here.
+    const { result } = renderHook(() => useSmartImport());
+    const img = fixtureImage();
+    const { processed, frames } = processSheet(img);
+    const big = new Uint8Array(200_000);
+    big.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0); // PNG magic
+    const bigFile = new File([big], "big.png", { type: "image/png" });
+    act(() => {
+      result.current.setName("big");
+      result.current.ingestProcessed({
+        sourceFile: bigFile,
+        sourceImage: null,
+        processed,
+        frames,
+        framePreviews: frames.map(() => null as unknown as HTMLCanvasElement),
+        bgColor: { r: 255, g: 255, b: 255 },
+        defaultName: "big",
+      });
+    });
+    const pkg = await result.current.buildPackage();
+    expect(pkg.version).toBe(2);
+    expect(pkg.smartImportMeta?.sourceSheet.length).toBeGreaterThan(200_000);
+  });
+
   it("flips framesEdited on deleteFrame and remaps inputs", () => {
     const { result } = renderHook(() => useSmartImport());
     const img = fixtureImage();
