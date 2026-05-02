@@ -7,7 +7,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => {} }) }));
 describe("CreatePage", () => {
   it("renders heading and pick button", () => {
     render(<CreatePage />);
-    expect(screen.getByText(/smart import/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/smart import/i).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /pick sprite sheet/i })).toBeInTheDocument();
   });
 });

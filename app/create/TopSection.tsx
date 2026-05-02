@@ -12,24 +12,29 @@ interface Props {
 export function TopSection({ name, onName, onPickFile, busy }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
-    <div className="flex flex-col gap-2">
-      <label className="flex items-center gap-3">
-        <span className="w-16 text-right font-mono text-sm opacity-60">Name</span>
+    <div className="grid gap-4 sm:grid-cols-2">
+      <label className="flex flex-col gap-1.5">
+        <span className="font-mono text-[10px] uppercase tracking-widest opacity-50">
+          Name
+        </span>
         <input
           type="text"
           value={name}
           maxLength={20}
           onChange={(e) => onName(e.target.value)}
-          className="w-48 rounded border px-2 py-1 text-sm"
+          placeholder="my-mascot"
+          className="rounded-md border border-[color:var(--border)] bg-transparent px-3 py-2 text-sm focus:border-[color:var(--accent)] focus:outline-none focus:ring-1 focus:ring-[color:var(--accent)]"
         />
       </label>
-      <div className="flex items-center gap-3">
-        <span className="w-16 text-right font-mono text-sm opacity-60">Source</span>
+      <div className="flex flex-col gap-1.5">
+        <span className="font-mono text-[10px] uppercase tracking-widest opacity-50">
+          Source
+        </span>
         <button
           type="button"
           disabled={busy}
           onClick={() => inputRef.current?.click()}
-          className="rounded border px-3 py-1 text-sm"
+          className="rounded-md border border-[color:var(--border)] bg-transparent px-3 py-2 text-left text-sm transition hover:border-[color:var(--accent)] disabled:cursor-not-allowed disabled:opacity-40"
         >
           {busy ? "Processing…" : name ? "Change sprite sheet" : "Pick sprite sheet"}
         </button>

@@ -27,22 +27,25 @@ export function StatusRow({
   const previewFrames = indices
     .map((i) => previews[i])
     .filter((c): c is HTMLCanvasElement => Boolean(c));
+  const empty = indices.length === 0;
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-2">
-        <span className="w-20 text-right font-mono text-sm">{status}</span>
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-3">
+        <span className="w-24 text-right font-mono text-[11px] uppercase tracking-widest opacity-60">
+          {status}
+        </span>
         <input
           type="text"
           value={value}
           onChange={(e) => onSetInput(status, e.target.value)}
           placeholder="e.g. 1-5"
-          className="w-32 rounded-md border bg-transparent px-2 py-1 font-mono text-sm"
+          className="w-32 rounded-md border border-[color:var(--border)] bg-transparent px-2.5 py-1.5 font-mono text-sm focus:border-[color:var(--accent)] focus:outline-none focus:ring-1 focus:ring-[color:var(--accent)]"
         />
         <span
           className={[
-            "w-8 font-mono text-xs",
-            indices.length === 0 ? "text-red-500" : "opacity-60",
+            "w-8 font-mono text-[11px] tracking-widest",
+            empty ? "text-[color:var(--accent)]" : "opacity-50",
           ].join(" ")}
         >
           {indices.length}f
@@ -50,14 +53,15 @@ export function StatusRow({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          disabled={indices.length === 0}
-          className="rounded px-2 py-1 text-sm disabled:opacity-30"
+          disabled={empty}
+          aria-label="preview animation"
+          className="rounded-md border border-[color:var(--border)] px-2.5 py-1 text-xs transition hover:border-[color:var(--accent)] hover:text-[color:var(--accent)] disabled:cursor-not-allowed disabled:opacity-30"
         >
           ▶
         </button>
       </div>
       {open && previewFrames.length > 0 && (
-        <div className="ml-20 rounded-md border p-2">
+        <div className="ml-[6.75rem] inline-flex w-fit rounded-md border border-[color:var(--border)] bg-[color:var(--bg-subtle)] p-3">
           <AnimationPreview frames={previewFrames} />
         </div>
       )}
