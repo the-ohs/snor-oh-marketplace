@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useSmartImport } from "@/lib/useSmartImport";
 import { processSheet } from "@/lib/spriteProcessor/detect";
 import { loadImageData, frameThumbnail } from "@/lib/spriteProcessor/canvas";
@@ -16,6 +16,7 @@ interface Props {
 
 export function SmartImportPanel({ onPublishSuccess }: Props) {
   const hook = useSmartImport();
+  const [creator, setCreator] = useState("");
 
   const onPickFile = useCallback(async (file: File) => {
     hook.setProcessing(true);
@@ -51,7 +52,7 @@ export function SmartImportPanel({ onPublishSuccess }: Props) {
     URL.revokeObjectURL(url);
   }, [hook]);
 
-  const onPublish = useCallback(async (creator: string) => {
+  const onPublish = useCallback(async () => {
     if (hook.state.saving) return;
     hook.setSaving(true);
     try {
@@ -71,7 +72,7 @@ export function SmartImportPanel({ onPublishSuccess }: Props) {
     } finally {
       hook.setSaving(false);
     }
-  }, [hook, onPublishSuccess]);
+  }, [hook, creator, onPublishSuccess]);
 
   const s = hook.state;
   return (
@@ -85,8 +86,11 @@ export function SmartImportPanel({ onPublishSuccess }: Props) {
       <TopSection
         name={s.name}
         onName={hook.setName}
+        creator={creator}
+        onCreator={setCreator}
         onPickFile={onPickFile}
         busy={s.processing}
+        currentFile={s.sourceFile}
       />
       {s.framePreviews.length > 0 && (
         <FrameGrid previews={s.framePreviews} onDelete={hook.deleteFrame} onMove={hook.moveFrame} />

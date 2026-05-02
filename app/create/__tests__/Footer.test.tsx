@@ -16,13 +16,10 @@ describe("Footer", () => {
     expect(onDownload).toHaveBeenCalled();
   });
 
-  it("reveals creator field then submits on Publish", () => {
+  it("calls onPublish directly on click", () => {
     const onPublish = vi.fn();
     render(<Footer canSave busy={false} onDownload={() => {}} onPublish={onPublish} />);
     fireEvent.click(screen.getByRole("button", { name: /publish/i }));
-    const handle = screen.getByPlaceholderText(/@yourhandle/i);
-    fireEvent.change(handle, { target: { value: "@me" } });
-    fireEvent.click(screen.getByRole("button", { name: /confirm publish/i }));
-    expect(onPublish).toHaveBeenCalledWith("@me");
+    expect(onPublish).toHaveBeenCalledTimes(1);
   });
 });
