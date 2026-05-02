@@ -28,10 +28,8 @@ export default function Home() {
             </div>
           </header>
           <p className="mt-6 max-w-2xl text-sm leading-relaxed opacity-70">
-            Upload any <code className="font-mono text-[color:var(--accent)]">.snoroh</code> or{" "}
-            <code className="font-mono text-[color:var(--accent)]">.animime</code> bundle exported
-            from the desktop app. Previews animate at the same 80&nbsp;ms/frame rate as the mascot
-            itself. No accounts. 5 uploads per day per IP.
+            Upload any <code className="font-mono text-[color:var(--accent)]">.snoroh</code> bundle
+            exported from the desktop app. No accounts. 5 uploads per day per IP.
           </p>
         </div>
       </div>

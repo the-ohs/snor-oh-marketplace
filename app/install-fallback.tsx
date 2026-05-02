@@ -11,7 +11,6 @@ interface Props {
 }
 
 const APP_NAME: Record<PkgFormat, string> = {
-  animime: "ani-mime",
   snoroh: "snor-oh",
 };
 

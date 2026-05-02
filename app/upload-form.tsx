@@ -17,8 +17,8 @@ export function UploadForm() {
   const acceptFile = useCallback((f: File | null | undefined) => {
     if (!f) return;
     const n = f.name.toLowerCase();
-    if (!n.endsWith(".snoroh") && !n.endsWith(".animime")) {
-      setMessage({ kind: "err", text: "File must end in .snoroh or .animime" });
+    if (!n.endsWith(".snoroh")) {
+      setMessage({ kind: "err", text: "File must end in .snoroh" });
       return;
     }
     setMessage(null);
@@ -37,7 +37,7 @@ export function UploadForm() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) {
-      setMessage({ kind: "err", text: "Pick a .snoroh or .animime file first" });
+      setMessage({ kind: "err", text: "Pick a .snoroh file first" });
       return;
     }
     setBusy(true);
@@ -91,7 +91,7 @@ export function UploadForm() {
           <input
             ref={inputRef}
             type="file"
-            accept=".snoroh,.animime,application/json"
+            accept=".snoroh,application/json"
             className="absolute inset-0 cursor-pointer opacity-0"
             onChange={(e) => acceptFile(e.target.files?.[0])}
           />
@@ -105,7 +105,7 @@ export function UploadForm() {
             <div className="space-y-1">
               <div className="text-sm font-medium">Drop a package here</div>
               <div className="font-mono text-[11px] opacity-50">
-                or click · .snoroh / .animime · max 3 MiB
+                or click · .snoroh · max 3 MiB
               </div>
             </div>
           )}

@@ -1,5 +1,4 @@
-// Mirror of Swift OhhExporter.SnorohFile (same JSON format for both
-// .snoroh and .animime — the extension is just branding).
+// Mirror of Swift OhhExporter.SnorohFile.
 export const STATUSES = [
   "initializing",
   "searching",
