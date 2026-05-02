@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { SmartImportModal } from "./create/SmartImportModal";
 
 type Message = { kind: "err" | "ok"; text: string } | null;
 
@@ -10,6 +11,7 @@ export function UploadForm() {
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [message, setMessage] = useState<Message>(null);
+  const [smartImportOpen, setSmartImportOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const acceptFile = useCallback((f: File | null | undefined) => {
@@ -139,26 +141,44 @@ export function UploadForm() {
             )}
           </div>
 
-          <button
-            type="submit"
-            disabled={busy || !file}
-            className="mt-auto inline-flex items-center justify-center gap-2 rounded-md bg-[color:var(--accent)] px-4 py-2.5 text-sm font-semibold text-[color:var(--accent-fg)] shadow-sm transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {busy ? (
-              <>
-                <Spinner />
-                <span>Uploading…</span>
-              </>
-            ) : (
-              <span>Share package</span>
-            )}
-          </button>
+          <div className="mt-auto flex flex-col gap-2">
+            <button
+              type="submit"
+              disabled={busy || !file}
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-[color:var(--accent)] px-4 py-2.5 text-sm font-semibold text-[color:var(--accent-fg)] shadow-sm transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {busy ? (
+                <>
+                  <Spinner />
+                  <span>Uploading…</span>
+                </>
+              ) : (
+                <span>Share package</span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSmartImportOpen(true)}
+              className="inline-flex items-center justify-center rounded-md border border-[color:var(--border)] bg-transparent px-4 py-2.5 text-sm font-medium transition hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]"
+            >
+              Create your own sprite
+            </button>
+          </div>
 
           <p className="font-mono text-[10px] leading-relaxed opacity-40">
             5 uploads/day per IP · validated server-side · anonymous
           </p>
         </div>
       </div>
+      <SmartImportModal
+        open={smartImportOpen}
+        onClose={() => setSmartImportOpen(false)}
+        onPublishSuccess={() => {
+          setSmartImportOpen(false);
+          setMessage({ kind: "ok", text: "Published! Refreshing gallery…" });
+          setTimeout(() => location.reload(), 700);
+        }}
+      />
     </form>
   );
 }
