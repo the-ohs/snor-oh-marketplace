@@ -14,8 +14,13 @@
     "jsx": "preserve",
     "incremental": true,
     "plugins": [{ "name": "next" }],
-    "paths": { "@/*": ["./*"] }
+    "paths": { "@/*": ["./*"] },
+    "types": ["vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "tests/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    // Vitest's bundled Vite 5 types conflict with Next.js's Vite 8; tsc skips this file (Vitest type-checks it itself).
+    "vitest.config.mts"
+  ]
 }

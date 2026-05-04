@@ -37,7 +37,7 @@ export async function POST(req: Request) {
   const creatorRaw = (form.get("creator") as string | null)?.trim() ?? "";
   const creator = creatorRaw.length > 0 ? creatorRaw.slice(0, 40) : null;
 
-  const ext = filename.toLowerCase().endsWith(".animime") ? "animime" : "snoroh";
+  const ext = "snoroh";
 
   const buf = Buffer.from(await file.arrayBuffer());
 

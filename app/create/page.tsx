@@ -1,9 +1,10 @@
-import { Gallery } from "./gallery";
-import { UploadForm } from "./upload-form";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { useRouter } from "next/navigation";
+import { SmartImportPanel } from "./SmartImportPanel";
 
-export default function Home() {
+export default function CreatePage() {
+  const router = useRouter();
   return (
     <main className="min-h-screen">
       <div className="dot-grid">
@@ -16,58 +17,36 @@ export default function Home() {
                   snor-oh · marketplace
                 </div>
                 <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Mascot packages,
+                  Smart Import,
                   <br className="hidden sm:block" />
-                  <span className="text-[color:var(--accent)]"> share yours</span>.
+                  <span className="text-[color:var(--accent)]"> build a package</span>.
                 </h1>
               </div>
             </div>
             <div className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-widest opacity-60">
-              <span className="inline-block h-2 w-2 rounded-full bg-[color:var(--accent)]" />
-              <span>anonymous · free · rate-limited</span>
+              <a href="/" className="hover:text-[color:var(--accent)]">
+                ← back to gallery
+              </a>
             </div>
           </header>
           <p className="mt-6 max-w-2xl text-sm leading-relaxed opacity-70">
-            Upload any <code className="font-mono text-[color:var(--accent)]">.snoroh</code> bundle
-            exported from the desktop app. No accounts. 5 uploads per day per IP.
+            Drop a sprite sheet and we&apos;ll detect frames, then assign them to mascot statuses.
+            Export a <code className="font-mono text-[color:var(--accent)]">.snoroh</code> bundle or
+            publish it straight to the gallery.
           </p>
         </div>
       </div>
 
-      <section className="mx-auto max-w-6xl px-6">
-        <UploadForm />
-      </section>
-
-      <section className="mx-auto max-w-6xl px-6 py-12">
-        <div className="mb-6 flex items-baseline justify-between">
-          <h2 className="font-mono text-[11px] uppercase tracking-widest opacity-60">
-            Recently shared
-          </h2>
-          <span className="font-mono text-[11px] opacity-40">newest first</span>
+      <section className="mx-auto max-w-6xl px-6 pb-16">
+        <div className="overflow-hidden rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--card)] shadow-sm">
+          <SmartImportPanel onPublishSuccess={() => router.push("/")} />
         </div>
-        <Gallery />
       </section>
-
-      <footer className="mx-auto max-w-6xl px-6 pb-12 pt-4 font-mono text-[10px] uppercase tracking-widest opacity-40">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[color:var(--border)] pt-6">
-          <span>snor-oh · 2026</span>
-          <span>·</span>
-          <a
-            href="https://github.com/thanh-dong/snor-oh"
-            className="hover:text-[color:var(--accent)]"
-          >
-            github
-          </a>
-          <span>·</span>
-          <span>packages validated server-side · max 2&nbsp;MiB</span>
-        </div>
-      </footer>
     </main>
   );
 }
 
 function Logo() {
-  // 8x8 pixel mascot: small face with blush
   return (
     <div
       aria-hidden
@@ -91,7 +70,6 @@ function Logo() {
   );
 }
 
-// tiny mascot sprite: # = dark, o = accent, . = transparent
 const PIXELS = [
   "..####..",
   ".######.",
